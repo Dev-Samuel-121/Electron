@@ -1,13 +1,6 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer } = require('electron/renderer')
 
 contextBridge.exposeInMainWorld('electronAPI', {
-    openFile: () => ipcRenderer.invoke('dialog:openFile')
+    onUpdateCounter: (callback) => ipcRenderer.on('update-counter', (_event, value) => callback(value)),
+    counterValue: (value) => ipcRenderer.send('counter-value', value)
 })
-
-ipcRenderer.on('asynchronous-reply', (_event, arg) => {
-    console.log(arg)
-})
-ipcRenderer.send('asynchronous-message', 'ping')
-
-const result = ipcRenderer.sendSync('synchronous-message', 'ping')
-console.log(result) // prints "pong" in the DevTools console

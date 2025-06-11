@@ -1,12 +1,5 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron/main')
+const { app, BrowserWindow, Menu, ipcMain } = require('electron/main')
 const path = require('node:path')
-
-async function handleFileOpen() {
-    const { canceled, filePaths } = await dialog.showOpenDialog({})
-    if (!canceled) {
-        return filePaths[0]
-    }
-}
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -14,12 +7,37 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.js')
         }
     })
+
+    const menu = Menu.buildFromTemplate([
+        {
+            label: app.name,
+            submenu: [
+                {
+                    click: () => mainWindow.webContents.send('update-counter', 1),
+                    label: 'Increment'
+                },
+                {
+                    click: () => mainWindow.webContents.send('update-counter', -1),
+                    label: 'Decrement'
+                }
+            ]
+        }
+
+    ])
+
+    Menu.setApplicationMenu(menu)
     mainWindow.loadFile('index.html')
+
+    // Open the DevTools.
+    mainWindow.webContents.openDevTools()
 }
 
 app.whenReady().then(() => {
-    ipcMain.handle('dialog:openFile', handleFileOpen)
+    ipcMain.on('counter-value', (_event, value) => {
+        console.log(value) // will print value to Node console
+    })
     createWindow()
+
     app.on('activate', function () {
         if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
@@ -27,14 +45,4 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', function () {
     if (process.platform !== 'darwin') app.quit()
-})
-
-ipcMain.on('assynchronous-message', (event, arg) => {
-    console.log(arg)
-    event.reply('assynchronous-reply', 'pong')
-})
-
-ipcMain.on('synchronous-message', (event, arg) => {
-  console.log(arg) // prints "ping" in the Node console
-  event.returnValue = 'pong'
 })
